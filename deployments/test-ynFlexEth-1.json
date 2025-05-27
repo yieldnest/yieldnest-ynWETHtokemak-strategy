@@ -1,0 +1,19 @@
+{
+  "admin": "0xfcad670592a3b24869C0b51a6c6FDED4F95D6975",
+  "allocator": "0x657d9ABA1DBb59e53f9F3eCAA878447dCfC96dCb",
+  "baseAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "deployer": "0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496",
+  "rateProvider": "0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9",
+  "safe": "0xF080905b7AF7fA52952C0Bb0463F358F21c06a64",
+  "symbol": "ynFlexEth",
+  "timelock": "0xc7183455a4C133Ae270771860664b6B7ec320bB1",
+  "ynFlexEth-accountingModule-implementation": "0xA4AD4f68d0b91CFD19687c881e50f3A00242828c",
+  "ynFlexEth-accountingModule-proxy": "0x15cF58144EF33af1e14b5208015d11F9143E27b9",
+  "ynFlexEth-accountingModule-proxyAdmin": "0xe8a41C57AB0019c403D35e8D54f2921BaE21Ed66",
+  "ynFlexEth-accountingToken-implementation": "0x1d1499e622D69689cdf9004d05Ec547d650Ff211",
+  "ynFlexEth-accountingToken-proxy": "0xD6BbDE9174b1CdAa358d2Cf4D57D1a9F7178FBfF",
+  "ynFlexEth-accountingToken-proxyAdmin": "0xDDA0a8D7486686d36449792617565E6C474fBa3f",
+  "ynFlexEth-implementation": "0xa0Cb889707d426A7A386870A03bc70d1b0697598",
+  "ynFlexEth-proxy": "0x03A6a84cD762D9707A21605b548aaaB891562aAb",
+  "ynFlexEth-proxyAdmin": "0x61a0009C8E5f6e87CAf2D3B57081c27882a0187e"
+}

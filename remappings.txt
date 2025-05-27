@@ -1,0 +1,9 @@
+lib/forge-std/src=lib/forge-std/src
+forge-std=lib/forge-std/src
+@yieldnest-vault=lib/yieldnest-vault/src
+@yieldnest-vault-script=lib/yieldnest-vault/script
+src/library=lib/yieldnest-vault/src/library
+lib/openzeppelin-contracts=lib/yieldnest-vault/lib/openzeppelin-contracts
+lib/openzeppelin-contracts-upgradeable=lib/yieldnest-vault/lib/openzeppelin-contracts-upgradeable
+openzeppelin-contracts-upgradeable/=lib/yieldnest-vault/lib/openzeppelin-contracts-upgradeable/
+openzeppelin-contracts/=lib/yieldnest-vault/lib/openzeppelin-contracts/
