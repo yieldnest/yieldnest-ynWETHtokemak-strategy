@@ -57,10 +57,10 @@ contract DeployFlexStrategy is BaseScript {
     }
 
     function assignDeploymentParameters() internal virtual {
-        name = "YieldNest Flex Strategy";
-        symbol_ = "ynFlexEth";
-        accountTokenName = "YieldNest Flex Strategy IOU";
-        accountTokenSymbol = "ynFlex_iou";
+        name = "YieldNest Flex WETH - Tokemak";
+        symbol_ = "ynWETHtok";
+        accountTokenName = "YieldNest Flex WETH - Tokemak Receipt";
+        accountTokenSymbol = "ynWETHtok-WETH";
         decimals = 18;
         paused = true;
         allocator = contracts.YNETHX();

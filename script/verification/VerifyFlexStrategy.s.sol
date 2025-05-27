@@ -11,7 +11,7 @@ import { RolesVerification } from "./RolesVerification.sol";
 // forge script VerifyFlexStrategy --rpc-url <MAINNET_RPC_URL>
 contract VerifyFlexStrategy is BaseScript, Test {
     function symbol() public pure override returns (string memory) {
-        return "ynFlexEth";
+        return "ynWETHtok";
     }
 
     function run() public {
@@ -22,8 +22,12 @@ contract VerifyFlexStrategy is BaseScript, Test {
     }
 
     function _verifyDeploymentParams() internal view virtual {
-        assertEq(strategy.name(), "YieldNest Flex Strategy", "name is invalid");
-        assertEq(strategy.symbol(), "ynFlexEth", "symbol is invalid");
+        assertEq(strategy.name(), "YieldNest Flex WETH - Tokemak", "name is invalid");
+        assertEq(strategy.symbol(), "ynWETHtok", "symbol is invalid");
+        assertEq(accountingToken.name(), "YieldNest Flex WETH - Tokemak Receipt", "name is invalid");
+
+        assertEq(accountingToken.symbol(), "ynWETHtok-WETH", "symbol is invalid");
+
         assertEq(strategy.decimals(), 18, "decimals is invalid");
         RolesVerification.verifyRole(
             strategy, allocator, strategy.ALLOCATOR_ROLE(), true, "parent vault has allocator role"
