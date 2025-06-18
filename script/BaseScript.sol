@@ -10,7 +10,7 @@ import { MainnetActors, IActors } from "@yieldnest-vault-script/Actors.sol";
 import { IContracts, L1Contracts } from "@yieldnest-vault-script/Contracts.sol";
 import { FlexStrategy } from "src/FlexStrategy.sol";
 import { AccountingModule } from "src/AccountingModule.sol";
-import { AccountingToken } from "src/AccountingToken.sol";
+import { AccountingToken, IAccountingToken } from "src/AccountingToken.sol";
 
 abstract contract BaseScript is Script {
     using stdJson for string;

@@ -10,7 +10,8 @@ import {
     FlexStrategy,
     AccountingModule,
     AccountingToken,
-    MainnetActors
+    MainnetActors,
+    IAccountingToken
 } from "script/BaseScript.sol";
 import { BaseRoles } from "script/roles/BaseRoles.sol";
 import { FixedRateProvider } from "src/FixedRateProvider.sol";
@@ -117,13 +118,12 @@ contract DeployFlexStrategy is BaseScript {
                     new TransparentUpgradeableProxy(
                         address(strategyImplementation),
                         address(timelock),
-                        abi.encodeWithSelector(
-                            FlexStrategy.initialize.selector, admin, name, symbol_, decimals, baseAsset, paused
-                        )
+                        ""
                     )
                 )
             )
         );
+        strategy.initialize(admin, name, symbol_, decimals, baseAsset, paused);
 
         accountingToken = AccountingToken(
             payable(
@@ -131,13 +131,12 @@ contract DeployFlexStrategy is BaseScript {
                     new TransparentUpgradeableProxy(
                         address(accountingTokenImplementation),
                         address(timelock),
-                        abi.encodeWithSelector(
-                            AccountingToken.initialize.selector, admin, accountTokenName, accountTokenSymbol
-                        )
+                        ""
                     )
                 )
             )
         );
+        accountingToken.initialize(admin, accountTokenName, accountTokenSymbol);
 
         accountingModuleImplementation = new AccountingModule(address(strategy), baseAsset);
         accountingModule = AccountingModule(
@@ -146,18 +145,12 @@ contract DeployFlexStrategy is BaseScript {
                     new TransparentUpgradeableProxy(
                         address(accountingModuleImplementation),
                         address(timelock),
-                        abi.encodeWithSelector(
-                            AccountingModule.initialize.selector,
-                            admin,
-                            safe,
-                            address(accountingToken),
-                            targetApy,
-                            lowerBound
+                        ""
                         )
                     )
                 )
-            )
-        );
+            );
+        accountingModule.initialize(admin, safe, IAccountingToken(address(accountingToken)), targetApy, lowerBound);
 
         configureStrategy();
     }
