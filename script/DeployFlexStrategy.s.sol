@@ -113,27 +113,13 @@ contract DeployFlexStrategy is BaseScript {
         accountingTokenImplementation = new AccountingToken(address(baseAsset));
 
         strategy = FlexStrategy(
-            payable(
-                address(
-                    new TransparentUpgradeableProxy(
-                        address(strategyImplementation),
-                        address(timelock),
-                        ""
-                    )
-                )
-            )
+            payable(address(new TransparentUpgradeableProxy(address(strategyImplementation), address(timelock), "")))
         );
         strategy.initialize(admin, name, symbol_, decimals, baseAsset, paused);
 
         accountingToken = AccountingToken(
             payable(
-                address(
-                    new TransparentUpgradeableProxy(
-                        address(accountingTokenImplementation),
-                        address(timelock),
-                        ""
-                    )
-                )
+                address(new TransparentUpgradeableProxy(address(accountingTokenImplementation), address(timelock), ""))
             )
         );
         accountingToken.initialize(admin, accountTokenName, accountTokenSymbol);
@@ -141,15 +127,9 @@ contract DeployFlexStrategy is BaseScript {
         accountingModuleImplementation = new AccountingModule(address(strategy), baseAsset);
         accountingModule = AccountingModule(
             payable(
-                address(
-                    new TransparentUpgradeableProxy(
-                        address(accountingModuleImplementation),
-                        address(timelock),
-                        ""
-                        )
-                    )
-                )
-            );
+                address(new TransparentUpgradeableProxy(address(accountingModuleImplementation), address(timelock), ""))
+            )
+        );
         accountingModule.initialize(admin, safe, IAccountingToken(address(accountingToken)), targetApy, lowerBound);
 
         configureStrategy();

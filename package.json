@@ -1,0 +1,28 @@
+{
+  "name": "v2-large-withdraw-poc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "generate-types": "rimraf src/contracts && typechain --target=ethers-v6 --out-dir=test/scripts/contracts --node16-modules 'test/scripts/abis/*.json'",
+    "demo": "npm run generate-types && tsx test/scripts/tokemakSwapRoute.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tokemak/autopilot-swap-route-calc": "0.0.2",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "ethers": "^6.13.5"
+  },
+  "devDependencies": {
+    "@typechain/ethers-v6": "^0.5.1",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.2",
+    "typechain": "^8.3.2"
+  }
+}
