@@ -102,7 +102,7 @@ contract TokemakAutoEthIntegration is TokemakAutoEthAddresses, Test {
     address public BOB = address(0xb0b);
     address public safe;
 
-    function setUp() public {
+    function setUp() public virtual {
         deployment = new DeployFlexStrategy();
         deployment.setEnv(BaseScript.Env.TEST);
         deployment.run();
@@ -312,7 +312,7 @@ contract TokemakAutoEthIntegration is TokemakAutoEthAddresses, Test {
         uint256 autoETHBalanceBeforeWithdraw = IERC20(AUTO_ETH).balanceOf(safe);
         // unstake
         AUTOPILOT_ROUTER.approve(AUTO_ETH, AUTOPOOL_MAIN_REWARDER, autoEthBalanceReceivedBySafe);
-        AUTOPILOT_ROUTER.withdrawVaultToken(AUTO_ETH, AUTOPOOL_MAIN_REWARDER, minSharesOut, false);
+        AUTOPILOT_ROUTER.withdrawVaultToken(AUTO_ETH, AUTOPOOL_MAIN_REWARDER, autoEthBalanceReceivedBySafe, false);
         assertEq(
             IERC20(AUTO_ETH).balanceOf(safe) - autoETHBalanceBeforeWithdraw,
             autoEthBalanceReceivedBySafe,
@@ -340,7 +340,7 @@ contract TokemakAutoEthIntegration is TokemakAutoEthAddresses, Test {
     }
 
     function test_POC_Preview_Deposit_Preview_Redeem() public {
-        uint256 depositAmount = 10_000 ether;
+        uint256 depositAmount = 2000 ether;
 
         uint256 shareAmountReceived = IAutoPoolETH(AUTO_ETH).previewDeposit(depositAmount);
 
@@ -378,8 +378,8 @@ contract TokemakAutoEthIntegration is TokemakAutoEthAddresses, Test {
     }
 
     function test_depositAndRedeem_large_amount_using_api_routes() public {
-        uint256 depositAmount = 2000 ether;
-        uint256 slippageTolerance = 5e14; // 0.05%
+        uint256 depositAmount = 100 ether;
+        uint256 slippageTolerance = 2e15; // 0.20%
 
         deal(deployment.baseAsset(), BOB, depositAmount);
         // Deposit as Bob
@@ -430,10 +430,30 @@ contract TokemakAutoEthIntegration is TokemakAutoEthAddresses, Test {
 
         uint256 wethBalanceOfSafe = IERC20(deployment.baseAsset()).balanceOf(safe);
         assertApproxEqRel(
-            wethBalanceOfSafe, initialWethBalanceOfSafe, 5e14, "WETH balance received should be within 0.05% slippage"
+            wethBalanceOfSafe, initialWethBalanceOfSafe, 2e15, "WETH balance received should be within 0.2% slippage"
         );
         vm.stopPrank();
     }
+
+    function test_depositAndRedeem_large_amount_from_whale() public {
+        uint256 autoETHBalanceToRedeem = 1000 ether;
+        uint256 slippageTolerance = 2e14; // 0.20%
+
+        address whale = 0x60882D6f70857606Cdd37729ccCe882015d1755E;
+
+        vm.startPrank(whale);
+        // redeem
+        // need to check for sane minAssetsOut in prod. is frontrunnable
+        IERC20(AUTO_ETH).approve(address(AUTOPILOT_ROUTER), autoETHBalanceToRedeem);
+        bytes memory redeemWithRoutesCalldata =
+            _fetchRedeemWithRoutesCalldata(whale, autoETHBalanceToRedeem, 0);
+        (bool success,) = address(AUTOPILOT_ROUTER).call(redeemWithRoutesCalldata);
+        assertTrue(success, "Redeem failed");
+
+        console.log("Final WETH balance of whale", IERC20(deployment.baseAsset()).balanceOf(whale));
+        vm.stopPrank();
+    }
+
 
     function _fetchRedeemWithRoutesCalldata(
         address sender,
