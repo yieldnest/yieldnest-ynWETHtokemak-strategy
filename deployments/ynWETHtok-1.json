@@ -1,0 +1,19 @@
+{
+  "admin": "0xfcad670592a3b24869C0b51a6c6FDED4F95D6975",
+  "allocator": "0x657d9ABA1DBb59e53f9F3eCAA878447dCfC96dCb",
+  "baseAsset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  "deployer": "0x445b64828683ae4B6D5f0542f9E97707d631A847",
+  "rateProvider": "0xde4B8B6e4d315c1825D54BB75203284589bec23e",
+  "safe": "0xF080905b7AF7fA52952C0Bb0463F358F21c06a64",
+  "symbol": "ynWETHtok",
+  "timelock": "0x92c7B39A7baC1C76E04c3c9f36715a0213F0A35e",
+  "ynWETHtok-accountingModule-implementation": "0xdeFEb23CF35a595c43E440B535f499EB50036ad9",
+  "ynWETHtok-accountingModule-proxy": "0x7E8bCCF8c3A55Fd611A928E004E132a5bD08E935",
+  "ynWETHtok-accountingModule-proxyAdmin": "0x49FD1fa278F17c8e4f94c4442756Cb3db362D596",
+  "ynWETHtok-accountingToken-implementation": "0xE1cb9E3044b65c3f043A9d056a8542a3f8b845aE",
+  "ynWETHtok-accountingToken-proxy": "0x19F5218501F4728A5ecfDD390e9A0E6D7CBe4001",
+  "ynWETHtok-accountingToken-proxyAdmin": "0x70F0F7873a959ee5aeffC6a78B874A8FbF327EB4",
+  "ynWETHtok-implementation": "0x6F7349Bfef37267474B9Caa402CCCB92EbA8Aa46",
+  "ynWETHtok-proxy": "0x873d4A5dbe648F4048a1E728d95bc341EeF73d2f",
+  "ynWETHtok-proxyAdmin": "0xAA3712705C13de8A9D825C4c89E777CF4BbCC49a"
+}

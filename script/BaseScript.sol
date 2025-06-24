@@ -8,9 +8,9 @@ import { Strings } from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import { ProxyUtils } from "@yieldnest-vault-script/ProxyUtils.sol";
 import { MainnetActors, IActors } from "@yieldnest-vault-script/Actors.sol";
 import { IContracts, L1Contracts } from "@yieldnest-vault-script/Contracts.sol";
-import { FlexStrategy } from "src/FlexStrategy.sol";
-import { AccountingModule } from "src/AccountingModule.sol";
-import { AccountingToken, IAccountingToken } from "src/AccountingToken.sol";
+import { FlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
+import { AccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
+import { AccountingToken, IAccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 
 abstract contract BaseScript is Script {
     using stdJson for string;
@@ -54,6 +54,8 @@ abstract contract BaseScript is Script {
     AccountingToken public accountingToken;
     AccountingToken public accountingTokenImplementation;
     address public accountingTokenProxyAdmin;
+
+    uint256 public minRewardableAssets;
 
     error UnsupportedChain();
     error InvalidSetup();

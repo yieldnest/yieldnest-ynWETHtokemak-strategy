@@ -2,9 +2,9 @@
 pragma solidity ^0.8.28;
 
 import { IActors } from "@yieldnest-vault-script/Actors.sol";
-import { FlexStrategy } from "src/FlexStrategy.sol";
-import { AccountingModule } from "src/AccountingModule.sol";
-import { AccountingToken } from "src/AccountingToken.sol";
+import { FlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
+import { AccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
+import { AccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 
 library BaseRoles {
     function configureDefaultRoles(

@@ -37,9 +37,23 @@ contract VerifyFlexStrategy is BaseScript, Test {
         RolesVerification.verifyRole(
             accountingModule,
             safe,
-            accountingModule.ACCOUNTING_PROCESSOR_ROLE(),
+            accountingModule.SAFE_MANAGER_ROLE(),
             true,
             "safe has accounting processor role"
+        );
+        RolesVerification.verifyRole(
+            accountingModule,
+            accountingProcessor,
+            accountingModule.REWARDS_PROCESSOR_ROLE(),
+            true,
+            "accounting processor has rewards processor role"
+        );
+        RolesVerification.verifyRole(
+            accountingModule,
+            accountingProcessor,
+            accountingModule.LOSS_PROCESSOR_ROLE(),
+            true,
+            "accounting processor has loss processor role"
         );
     }
 

@@ -3,9 +3,9 @@ pragma solidity ^0.8.28;
 
 import { Test, console } from "forge-std/Test.sol";
 import { DeployFlexStrategy } from "script/DeployFlexStrategy.s.sol";
-import { FlexStrategy } from "src/FlexStrategy.sol";
-import { AccountingModule } from "src/AccountingModule.sol";
-import { AccountingToken } from "src/AccountingToken.sol";
+import { FlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
+import { AccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
+import { AccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { BaseScript } from "script/BaseScript.sol";
 import {IAutoPoolMainRewarder, ISystemRegistry, IAutopilotRouter, IAutoPoolETH, TokemakAutoEthAddresses, TokemakAutoEthIntegration} from "./TokemakAutoEthIntegration.t.sol";

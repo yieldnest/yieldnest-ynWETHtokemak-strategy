@@ -96,7 +96,7 @@ contract AccountingModuleTest is Test {
     function test_withdraw_revertIfNotStrategy() public {
         vm.expectRevert(IAccountingModule.NotStrategy.selector);
         vm.prank(BOB);
-        accountingModule.withdraw(20e18);
+        accountingModule.withdraw(20e18, BOB);
     }
 
     function test_withdraw_success() public {
@@ -107,7 +107,7 @@ contract AccountingModuleTest is Test {
 
         uint256 bobBefore = mockErc20.balanceOf(BOB);
         uint256 withdraw = 10e18;
-        mockStrategy.withdraw(withdraw);
+        mockStrategy.withdraw(withdraw, BOB);
 
         assertEq(accountingToken.balanceOf(address(mockStrategy)), deposit - withdraw);
         assertEq(mockErc20.balanceOf(BOB) - bobBefore, withdraw);
@@ -121,7 +121,7 @@ contract AccountingModuleTest is Test {
 
         uint256 bobBefore = mockErc20.balanceOf(BOB);
         uint256 withdraw = amount;
-        mockStrategy.withdraw(withdraw);
+        mockStrategy.withdraw(withdraw, BOB);
 
         assertEq(accountingToken.balanceOf(address(mockStrategy)), deposit - withdraw);
         assertEq(mockErc20.balanceOf(BOB) - bobBefore, withdraw);
@@ -137,7 +137,7 @@ contract AccountingModuleTest is Test {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 BOB,
-                accountingModule.ACCOUNTING_PROCESSOR_ROLE()
+                accountingModule.REWARDS_PROCESSOR_ROLE()
             )
         );
         accountingModule.processRewards(1e6);
@@ -145,7 +145,7 @@ contract AccountingModuleTest is Test {
 
     function test_processRewards_revertIfTvlTooLow() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
         vm.startPrank(BOB);
         uint256 deposit = 1e6;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
@@ -158,7 +158,7 @@ contract AccountingModuleTest is Test {
 
     function test_processRewards_revertIfUpperBoundExceed() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -172,7 +172,7 @@ contract AccountingModuleTest is Test {
 
     function test_processRewards_revertIfTooEarly() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -191,7 +191,7 @@ contract AccountingModuleTest is Test {
 
     function test_processRewards_success() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -209,7 +209,7 @@ contract AccountingModuleTest is Test {
 
     function testFuzz_processRewards(uint96 processedAmount) public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         uint256 supply = 10_000_000e18;
         vm.assume(
@@ -228,7 +228,7 @@ contract AccountingModuleTest is Test {
 
     function test_processLosses_revertIfNoAccountingProcessorRole() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -239,7 +239,7 @@ contract AccountingModuleTest is Test {
             abi.encodeWithSelector(
                 IAccessControl.AccessControlUnauthorizedAccount.selector,
                 BOB,
-                accountingModule.ACCOUNTING_PROCESSOR_ROLE()
+                accountingModule.LOSS_PROCESSOR_ROLE()
             )
         );
         accountingModule.processLosses(1e6);
@@ -247,7 +247,7 @@ contract AccountingModuleTest is Test {
 
     function test_processLosses_revertIfTvlTooLow() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 1e6;
@@ -261,7 +261,7 @@ contract AccountingModuleTest is Test {
 
     function test_processLosses_revertIfLowerBoundExceed() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -275,7 +275,7 @@ contract AccountingModuleTest is Test {
 
     function test_processLosses_revertIfTooEarly() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -294,7 +294,7 @@ contract AccountingModuleTest is Test {
 
     function test_processLosses_success() public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
@@ -312,7 +312,7 @@ contract AccountingModuleTest is Test {
 
     function testFuzz_processLosses(uint96 processedAmount) public {
         vm.startPrank(ADMIN);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ACCOUNTING_PROCESSOR);
 
         uint256 supply = 10_000_000e18;
         vm.assume(processedAmount <= (supply * accountingModule.lowerBound() / accountingModule.DIVISOR()));

@@ -13,7 +13,7 @@ import {
     MainnetActors,
     IAccountingToken
 } from "script/BaseScript.sol";
-import { BaseRoles } from "script/roles/BaseRoles.sol";
+import { BaseRoles } from "./roles/BaseRoles.sol";
 import { FixedRateProvider } from "src/FixedRateProvider.sol";
 
 // forge script DeployFlexStrategy --rpc-url <MAINNET_RPC_URL>  --slow --broadcast --account
@@ -112,11 +112,6 @@ contract DeployFlexStrategy is BaseScript {
         strategyImplementation = new FlexStrategy();
         accountingTokenImplementation = new AccountingToken(address(baseAsset));
 
-        strategy = FlexStrategy(
-            payable(address(new TransparentUpgradeableProxy(address(strategyImplementation), address(timelock), "")))
-        );
-        strategy.initialize(admin, name, symbol_, decimals, baseAsset, paused);
-
         accountingToken = AccountingToken(
             payable(
                 address(new TransparentUpgradeableProxy(address(accountingTokenImplementation), address(timelock), ""))
@@ -124,13 +119,21 @@ contract DeployFlexStrategy is BaseScript {
         );
         accountingToken.initialize(admin, accountTokenName, accountTokenSymbol);
 
+        strategy = FlexStrategy(
+            payable(address(new TransparentUpgradeableProxy(address(strategyImplementation), address(timelock), "")))
+        );
+
+        strategy.initialize(admin, name, symbol_, decimals, baseAsset, address(accountingToken), paused, address(rateProvider), false);
+
+
         accountingModuleImplementation = new AccountingModule(address(strategy), baseAsset);
         accountingModule = AccountingModule(
             payable(
                 address(new TransparentUpgradeableProxy(address(accountingModuleImplementation), address(timelock), ""))
             )
         );
-        accountingModule.initialize(admin, safe, IAccountingToken(address(accountingToken)), targetApy, lowerBound);
+        require(minRewardableAssets > 0, "minRewardableAssets must be greater than 0");
+        accountingModule.initialize(admin, safe, IAccountingToken(address(accountingToken)), targetApy, lowerBound, minRewardableAssets);
 
         configureStrategy();
     }
@@ -155,7 +158,9 @@ contract DeployFlexStrategy is BaseScript {
         strategy.setAccountingModule(address(accountingModule));
 
         // set accounting processor role
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), accountingProcessor);
+        accountingModule.grantRole(accountingModule.SAFE_MANAGER_ROLE(), accountingProcessor);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), accountingProcessor);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), accountingProcessor);
 
         strategy.unpause();
 

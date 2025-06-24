@@ -4,12 +4,12 @@ pragma solidity ^0.8.28;
 import { Test, console } from "forge-std/Test.sol";
 import { TransparentUpgradeableProxy } from "@yieldnest-vault/Common.sol";
 import { MockERC20 } from "../mocks/MockERC20.sol";
-import { FlexStrategy, IFlexStrategy } from "../../src/FlexStrategy.sol";
-import { AccountingModule, IAccountingModule } from "../../src/AccountingModule.sol";
-import { AccountingToken } from "../../src/AccountingToken.sol";
+import { FlexStrategy, IFlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
+import { AccountingModule, IAccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
+import { AccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { IVault } from "@yieldnest-vault/interface/IVault.sol";
-import { FixedRateProvider } from "../../src/FixedRateProvider.sol";
+import { FixedRateProvider } from "@yieldnest-flex-strategy/FixedRateProvider.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract FlexStrategyTest is Test {
@@ -71,7 +71,8 @@ contract FlexStrategyTest is Test {
         flexStrategy.grantRole(flexStrategy.ASSET_MANAGER_ROLE(), ADMIN);
         flexStrategy.grantRole(flexStrategy.ALLOCATOR_ROLE(), BOB);
         accountingModule.grantRole(accountingModule.SAFE_MANAGER_ROLE(), SAFE_MANAGER);
-        accountingModule.grantRole(accountingModule.ACCOUNTING_PROCESSOR_ROLE(), SAFE_MANAGER);
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), SAFE_MANAGER);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), SAFE_MANAGER);
 
         accountingToken.setAccountingModule(address(accountingModule));
         flexStrategy.setAccountingModule(address(accountingModule));
