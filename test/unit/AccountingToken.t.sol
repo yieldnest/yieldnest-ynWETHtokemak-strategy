@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import { Test, console } from "forge-std/Test.sol";
 import { MockERC20 } from "../mocks/MockERC20.sol";
 import { TransparentUpgradeableProxy } from "@yieldnest-vault/Common.sol";
-import { AccountingToken } from "../../src/AccountingToken.sol";
+import { AccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { MockAccountingModule } from "../mocks/MockAccountingModule.sol";
 

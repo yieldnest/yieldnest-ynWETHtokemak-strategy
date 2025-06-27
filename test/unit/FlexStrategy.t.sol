@@ -6,7 +6,7 @@ import { TransparentUpgradeableProxy } from "@yieldnest-vault/Common.sol";
 import { MockERC20 } from "../mocks/MockERC20.sol";
 import { FlexStrategy, IFlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
 import { AccountingModule, IAccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
-import { AccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
+import { AccountingToken, IAccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
 import { IVault } from "@yieldnest-vault/interface/IVault.sol";
 import { FixedRateProvider } from "@yieldnest-flex-strategy/FixedRateProvider.sol";
@@ -17,8 +17,9 @@ contract FlexStrategyTest is Test {
     address public BOB = address(0x0b0b);
     address public SAFE = address(0x1111);
     address public SAFE_MANAGER = address(0x5afe);
-    uint16 public constant TARGET_APY = 1000;
-    uint16 public constant LOWER_BOUND = 1000;
+    uint256 public constant TARGET_APY = 0.1 ether; // 10%
+    uint256 public constant LOWER_BOUND = 0.5 ether; // 50%
+    uint256 public constant MIN_REWARDABLE_ASSETS = 0.1 ether;
 
     MockERC20 public mockErc20;
     FlexStrategy public flexStrategy;
@@ -29,37 +30,40 @@ contract FlexStrategyTest is Test {
     function setUp() public {
         mockErc20 = new MockERC20("MOCK", "MOCK", 18);
 
-        // create flex strategy proxy
-        FlexStrategy strat_impl = new FlexStrategy();
-        TransparentUpgradeableProxy strat_tu = new TransparentUpgradeableProxy(
-            address(strat_impl),
-            ADMIN,
-            abi.encodeWithSelector(FlexStrategy.initialize.selector, ADMIN, "FlexStrategy", "FLEX", 18, mockErc20, true)
-        );
-        flexStrategy = FlexStrategy(payable(address(strat_tu)));
-
         // create accounting token proxy
         AccountingToken accountingToken_impl = new AccountingToken(address(mockErc20));
         TransparentUpgradeableProxy accountingToken_tu = new TransparentUpgradeableProxy(
             address(accountingToken_impl),
             ADMIN,
-            abi.encodeWithSelector(AccountingToken.initialize.selector, ADMIN, "NAME", "SYMBOL")
+            ""
         );
+        AccountingToken(address(accountingToken_tu)).initialize(ADMIN, "NAME", "SYMBOL");
         accountingToken = AccountingToken(payable(address(accountingToken_tu)));
 
-        // create accounting module proxies
-        bytes memory am_initData = abi.encodeWithSelector(
-            AccountingModule.initialize.selector, ADMIN, SAFE, address(accountingToken), TARGET_APY, LOWER_BOUND
-        );
-        AccountingModule am_impl = new AccountingModule(address(flexStrategy), address(mockErc20));
-        TransparentUpgradeableProxy am_tu = new TransparentUpgradeableProxy(address(am_impl), ADMIN, am_initData);
+        FixedRateProvider provider = new FixedRateProvider(address(accountingToken));
 
-        TransparentUpgradeableProxy am_tu2 = new TransparentUpgradeableProxy(address(am_impl), ADMIN, am_initData);
+        // create flex strategy proxy
+        FlexStrategy strat_impl = new FlexStrategy();
+        TransparentUpgradeableProxy strat_tu = new TransparentUpgradeableProxy(
+            address(strat_impl),
+            ADMIN,
+            ""
+        );  
+        
+        FlexStrategy(payable(address(strat_tu))).initialize(ADMIN, "FlexStrategy", "FLEX", 18, address(mockErc20), address(accountingToken), true, address(provider), false);
+
+        flexStrategy = FlexStrategy(payable(address(strat_tu)));
+
+        AccountingModule am_impl = new AccountingModule(address(flexStrategy), address(mockErc20));
+        TransparentUpgradeableProxy am_tu = new TransparentUpgradeableProxy(address(am_impl), ADMIN, "");
+
+        AccountingModule(address(am_tu)).initialize(ADMIN, SAFE, IAccountingToken(address(accountingToken)), TARGET_APY, LOWER_BOUND, MIN_REWARDABLE_ASSETS);
+
+        TransparentUpgradeableProxy am_tu2 = new TransparentUpgradeableProxy(address(am_impl), ADMIN, "");
+        AccountingModule(address(am_tu2)).initialize(ADMIN, SAFE, IAccountingToken(address(accountingToken)), TARGET_APY, LOWER_BOUND, MIN_REWARDABLE_ASSETS);
 
         accountingModule = AccountingModule(payable(address(am_tu)));
         accountingModule2 = AccountingModule(payable(address(am_tu2)));
-
-        FixedRateProvider provider = new FixedRateProvider(address(mockErc20));
 
         vm.startPrank(ADMIN);
         flexStrategy.grantRole(flexStrategy.PROVIDER_MANAGER_ROLE(), ADMIN);
@@ -84,6 +88,8 @@ contract FlexStrategyTest is Test {
 
         vm.prank(SAFE);
         mockErc20.approve(address(accountingModule), type(uint256).max);
+
+        vm.warp(block.timestamp + 15 days);
     }
 
     function test_setup_success() public view {
@@ -171,9 +177,8 @@ contract FlexStrategyTest is Test {
         flexStrategy.withdraw(2e18, BOB, BOB);
     }
 
-    function test_setAlwaysComputeTotalAssets_revert() public {
+    function test_setAlwaysComputeTotalAssets_success() public {
         vm.prank(ADMIN);
-        vm.expectRevert(IFlexStrategy.InvariantViolation.selector);
         flexStrategy.setAlwaysComputeTotalAssets(true);
     }
 }

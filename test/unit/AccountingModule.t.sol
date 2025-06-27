@@ -5,9 +5,11 @@ import { Test } from "forge-std/Test.sol";
 import { TransparentUpgradeableProxy } from "@yieldnest-vault/Common.sol";
 import { MockERC20 } from "../mocks/MockERC20.sol";
 import { MockStrategy } from "../mocks/MockStrategy.sol";
-import { AccountingModule, IAccountingModule } from "../../src/AccountingModule.sol";
-import { AccountingToken } from "../../src/AccountingToken.sol";
+import { AccountingModule, IAccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
+import { AccountingToken, IAccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 import { IAccessControl } from "@openzeppelin/contracts/access/IAccessControl.sol";
+import { FlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
+import { FixedRateProvider } from "@yieldnest-flex-strategy/FixedRateProvider.sol";
 
 contract AccountingModuleTest is Test {
     address public ADMIN = address(0xd34db33f);
@@ -18,37 +20,54 @@ contract AccountingModuleTest is Test {
     MockERC20 public mockErc20;
     AccountingModule public accountingModule;
     AccountingToken public accountingToken;
-    MockStrategy public mockStrategy;
-    uint16 public constant TARGET_APY = 1000;
-    uint16 public constant LOWER_BOUND = 1000;
+    FlexStrategy public mockStrategy;
+    uint256 public constant TARGET_APY = 0.1 ether; // 10%
+    uint256 public constant LOWER_BOUND = 0.5 ether; // 50%
+    uint256 public constant MIN_REWARDABLE_ASSETS = 0.1 ether;
 
     function setUp() public {
         mockErc20 = new MockERC20("MOCK", "MOCK", 18);
-        mockStrategy = new MockStrategy();
 
         // create accounting token proxy
         AccountingToken accountingToken_impl = new AccountingToken(address(mockErc20));
         TransparentUpgradeableProxy accountingToken_tu = new TransparentUpgradeableProxy(
             address(accountingToken_impl),
             ADMIN,
-            abi.encodeWithSelector(AccountingToken.initialize.selector, ADMIN, "NAME", "SYMBOL")
+            ""
         );
+        AccountingToken(address(accountingToken_tu)).initialize(ADMIN, "NAME", "SYMBOL");
         accountingToken = AccountingToken(payable(address(accountingToken_tu)));
 
-        // create accounting module proxy
-        AccountingModule accountingModule_impl = new AccountingModule(address(mockStrategy), address(mockErc20));
-        TransparentUpgradeableProxy accountingModule_tu = new TransparentUpgradeableProxy(
-            address(accountingModule_impl),
+        FixedRateProvider provider = new FixedRateProvider(address(accountingToken));
+
+        // create flex strategy proxy
+        FlexStrategy strat_impl = new FlexStrategy();
+        TransparentUpgradeableProxy strat_tu = new TransparentUpgradeableProxy(
+            address(strat_impl),
             ADMIN,
-            abi.encodeWithSelector(
-                AccountingModule.initialize.selector, ADMIN, SAFE, address(accountingToken), TARGET_APY, LOWER_BOUND
-            )
-        );
-        accountingModule = AccountingModule(payable(address(accountingModule_tu)));
+            ""
+        );  
+        
+        FlexStrategy(payable(address(strat_tu))).initialize(ADMIN, "FlexStrategy", "FLEX", 18, address(mockErc20), address(accountingToken), true, address(provider), false);
+
+        mockStrategy = FlexStrategy(payable(address(strat_tu)));
+
+
+        // create accounting module proxy
+        AccountingModule am_impl = new AccountingModule(address(mockStrategy), address(mockErc20));
+        TransparentUpgradeableProxy am_tu = new TransparentUpgradeableProxy(address(am_impl), ADMIN, "");
+
+        AccountingModule(address(am_tu)).initialize(ADMIN, SAFE, IAccountingToken(address(accountingToken)), TARGET_APY, LOWER_BOUND, MIN_REWARDABLE_ASSETS);
+        accountingModule = AccountingModule(payable(address(am_tu)));
 
         vm.startPrank(ADMIN);
         accountingToken.setAccountingModule(address(accountingModule));
-        mockStrategy.setAccountingModule(accountingModule);
+        mockStrategy.setAccountingModule((address(accountingModule)));
+        mockStrategy.grantRole(mockStrategy.UNPAUSER_ROLE(), ADMIN);
+        mockStrategy.unpause();
+
+        accountingModule.grantRole(accountingModule.REWARDS_PROCESSOR_ROLE(), ADMIN);
+        accountingModule.grantRole(accountingModule.LOSS_PROCESSOR_ROLE(), ADMIN);
         vm.stopPrank();
 
         vm.prank(BOB);
@@ -56,6 +75,8 @@ contract AccountingModuleTest is Test {
 
         vm.prank(SAFE);
         mockErc20.approve(address(accountingModule), type(uint256).max);
+
+        vm.warp(block.timestamp + 15 days);
     }
 
     function test_setup_success() public view {
@@ -80,7 +101,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         // assertEq(accountingToken.balanceOf(address(mockStrategy)), deposit);
     }
@@ -89,7 +110,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = amount;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
         assertEq(accountingToken.balanceOf(address(mockStrategy)), deposit);
     }
 
@@ -103,11 +124,11 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         uint256 bobBefore = mockErc20.balanceOf(BOB);
         uint256 withdraw = 10e18;
-        mockStrategy.withdraw(withdraw, BOB);
+        mockStrategy.withdraw(withdraw, BOB, BOB);
 
         assertEq(accountingToken.balanceOf(address(mockStrategy)), deposit - withdraw);
         assertEq(mockErc20.balanceOf(BOB) - bobBefore, withdraw);
@@ -117,11 +138,11 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = type(uint128).max;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         uint256 bobBefore = mockErc20.balanceOf(BOB);
         uint256 withdraw = amount;
-        mockStrategy.withdraw(withdraw, BOB);
+        mockStrategy.withdraw(withdraw, BOB, BOB);
 
         assertEq(accountingToken.balanceOf(address(mockStrategy)), deposit - withdraw);
         assertEq(mockErc20.balanceOf(BOB) - bobBefore, withdraw);
@@ -131,7 +152,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -149,7 +170,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 1e6;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         vm.expectRevert(IAccountingModule.TvlTooLow.selector);
@@ -163,10 +184,10 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
-        vm.expectRevert(IAccountingModule.AccountingLimitsExceeded.selector);
+        vm.expectPartialRevert(IAccountingModule.AccountingLimitsExceeded.selector);
         accountingModule.processRewards(deposit);
     }
 
@@ -177,7 +198,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         accountingModule.processRewards(1e6);
@@ -196,7 +217,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         accountingModule.processRewards(1e6);
@@ -219,7 +240,7 @@ contract AccountingModuleTest is Test {
 
         vm.startPrank(BOB);
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(supply);
+        mockStrategy.deposit(supply, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         accountingModule.processRewards(processedAmount);
@@ -233,7 +254,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -252,7 +273,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 1e6;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         vm.expectRevert(IAccountingModule.TvlTooLow.selector);
@@ -266,10 +287,10 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
-        vm.expectRevert(IAccountingModule.AccountingLimitsExceeded.selector);
+        vm.expectPartialRevert(IAccountingModule.LossLimitsExceeded.selector);
         accountingModule.processLosses(deposit);
     }
 
@@ -280,7 +301,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         accountingModule.processLosses(1e6);
@@ -299,7 +320,7 @@ contract AccountingModuleTest is Test {
         vm.startPrank(BOB);
         uint256 deposit = 20e18;
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(deposit);
+        mockStrategy.deposit(deposit, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         accountingModule.processLosses(1e6);
@@ -319,7 +340,7 @@ contract AccountingModuleTest is Test {
 
         vm.startPrank(BOB);
         mockErc20.approve(address(mockStrategy), type(uint256).max);
-        mockStrategy.deposit(supply);
+        mockStrategy.deposit(supply, BOB);
 
         vm.startPrank(ACCOUNTING_PROCESSOR);
         accountingModule.processLosses(processedAmount);
@@ -343,8 +364,9 @@ contract AccountingModuleTest is Test {
 
         accountingModule.setTargetApy(1e4);
 
+        uint256 maxTargetApy = accountingModule.DIVISOR();
         vm.expectRevert(IAccountingModule.InvariantViolation.selector);
-        accountingModule.setTargetApy(10_001);
+        accountingModule.setTargetApy(maxTargetApy + 1);
     }
 
     function test_setTargetApy_success() public {
@@ -371,8 +393,9 @@ contract AccountingModuleTest is Test {
         accountingModule.grantRole(accountingModule.SAFE_MANAGER_ROLE(), SAFE_MANAGER);
         vm.startPrank(SAFE_MANAGER);
 
+        uint256 maxLowerBound = accountingModule.MAX_LOWER_BOUND();
         vm.expectRevert(IAccountingModule.InvariantViolation.selector);
-        accountingModule.setLowerBound(1e4);
+        accountingModule.setLowerBound(maxLowerBound + 1);
     }
 
     function test_setLowerBound_success() public {

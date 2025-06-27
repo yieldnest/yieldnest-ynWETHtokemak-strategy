@@ -3,12 +3,13 @@ pragma solidity ^0.8.28;
 
 import { Test, console } from "forge-std/Test.sol";
 import { DeployFlexStrategy } from "script/DeployFlexStrategy.s.sol";
-import { FlexStrategy } from "src/FlexStrategy.sol";
-import { AccountingModule } from "src/AccountingModule.sol";
-import { AccountingToken } from "src/AccountingToken.sol";
+import { FlexStrategy } from "@yieldnest-flex-strategy/FlexStrategy.sol";
+import { AccountingModule } from "@yieldnest-flex-strategy/AccountingModule.sol";
+import { AccountingToken } from "@yieldnest-flex-strategy/AccountingToken.sol";
 import { IVault } from "@yieldnest-vault/interface/IVault.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { BaseScript } from "script/BaseScript.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 interface IAutoPoolMainRewarder {
     function balanceOf(address account) external view returns (uint256);
@@ -454,6 +455,72 @@ contract TokemakAutoEthIntegration is TokemakAutoEthAddresses, Test {
         vm.stopPrank();
     }
 
+    function test_POC_AutoETH_Rate() public {
+        uint256 currentBlock = 22773182;
+        uint256 forkId = vm.createSelectFork("https://eth-mainnet.g.alchemy.com/v2/09sYrtkL3hwSNhvJnSDRNY-xpFV4Oyc8", 22773182);
+
+        uint256[] memory timestamps = new uint256[](7);
+        uint256[] memory pricePerShares = new uint256[](7);
+
+        timestamps[0] = 22773182;
+        timestamps[1] = 22557182;
+        timestamps[2] = 22341182;
+        timestamps[3] = 22125182;
+        timestamps[4] = 21909182;
+        timestamps[5] = 21693182;
+        timestamps[6] = 21477182;
+
+        pricePerShares[0] = 1042714815108011004;
+        pricePerShares[1] = 1039001828618461814;
+        pricePerShares[2] = 1034907708437601714;
+        pricePerShares[3] = 1028939322115813746;
+        pricePerShares[4] = 1023821365498959258;
+        pricePerShares[5] = 1017800175451134116;
+        pricePerShares[6] = 1012482899940285137;
+
+        for(uint i = 0 ; i < timestamps.length - 1; i++) {
+            uint256 apr = calculateApr(pricePerShares[i + 1], timestamps[i+1], pricePerShares[i], timestamps[i]);
+            console.logString(string.concat("Comparing between ", Strings.toString(timestamps[i+1]), " and ", Strings.toString(timestamps[i]), " with apr"));
+            console.logString(string.concat("Price per share at ", Strings.toString(timestamps[i+1]), " is ", Strings.toString(pricePerShares[i+1])));
+            console.logString(string.concat("Price per share at ", Strings.toString(timestamps[i]), " is ", Strings.toString(pricePerShares[i])));
+            console.logString(string.concat("APR between both intervals is ", Strings.toString(apr)));
+        }
+    
+    }
+// Comparing between22557182and22773182with apr
+//   Price per share at22557182 is 1039001828618461814
+//   Price per share at22773182 is 1042714815108011004
+//   APR between both intervals is 522104303554926069
+
+    // [22773182,22557182,22341182,22125182,21909182,21693182,21477182]
+    // [1042714815108011004,1039001828618461814, 1034907708437601714,1028939322115813746,1023821365498959258,1017800175451134116,1012482899940285137]
+
+    function calculateApr(
+        uint256 previousPricePerShare,
+        uint256 previousTimestamp,
+        uint256 currentPricePerShare,
+        uint256 currentTimestamp
+    )
+        public
+        pure
+        returns (uint256 apr)
+    {
+        /*
+        ppsStart - Price per share at the start of the period
+        ppsEnd - Price per share at the end of the period
+        t - Time period in years*
+        Formula: (ppsEnd - ppsStart) / (ppsStart * t)
+        */
+
+        // Ensure timestamps are ordered (current should be after previous)
+        if (currentTimestamp <= previousTimestamp) revert();
+
+        // Prevent division by zero
+        if (previousPricePerShare == 0) revert();
+
+        return (currentPricePerShare - previousPricePerShare) * 1e18 * (365.25 days) / previousPricePerShare
+            / ((currentTimestamp - previousTimestamp) * 12);
+    }
 
     function _fetchRedeemWithRoutesCalldata(
         address sender,

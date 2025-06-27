@@ -14,7 +14,8 @@ import {
     IAccountingToken
 } from "script/BaseScript.sol";
 import { BaseRoles } from "./roles/BaseRoles.sol";
-import { FixedRateProvider } from "src/FixedRateProvider.sol";
+import { FixedRateProvider } from "@yieldnest-flex-strategy/FixedRateProvider.sol";
+import { console } from "forge-std/console.sol";
 
 // forge script DeployFlexStrategy --rpc-url <MAINNET_RPC_URL>  --slow --broadcast --account
 // <CAST_WALLET_ACCOUNT>  --sender <SENDER_ADDRESS>  --verify --etherscan-api-key <ETHERSCAN_API_KEY>  -vvv
@@ -28,7 +29,7 @@ contract DeployFlexStrategy is BaseScript {
     }
 
     function deployRateProvider() internal {
-        rateProvider = IProvider(address(new FixedRateProvider(IVault(allocator).asset())));
+        rateProvider = IProvider(address(new FixedRateProvider(address(accountingToken))));
     }
 
     function _verifySetup() public view override {
@@ -47,10 +48,11 @@ contract DeployFlexStrategy is BaseScript {
         _setup();
         assignDeploymentParameters();
         _verifyDeploymentParams();
-        deployRateProvider();
         _deployTimelockController();
-        _verifySetup();
 
+        deployAccountingToken();
+        deployRateProvider();
+        _verifySetup();
         deploy();
         _saveDeployment(deploymentEnv);
 
@@ -107,9 +109,8 @@ contract DeployFlexStrategy is BaseScript {
         }
     }
 
-    function deploy() internal {
+    function deployAccountingToken() internal {
         address admin = msg.sender;
-        strategyImplementation = new FlexStrategy();
         accountingTokenImplementation = new AccountingToken(address(baseAsset));
 
         accountingToken = AccountingToken(
@@ -118,7 +119,11 @@ contract DeployFlexStrategy is BaseScript {
             )
         );
         accountingToken.initialize(admin, accountTokenName, accountTokenSymbol);
+    }
 
+    function deploy() internal {
+        address admin = msg.sender;
+        strategyImplementation = new FlexStrategy();
         strategy = FlexStrategy(
             payable(address(new TransparentUpgradeableProxy(address(strategyImplementation), address(timelock), "")))
         );
@@ -132,8 +137,9 @@ contract DeployFlexStrategy is BaseScript {
                 address(new TransparentUpgradeableProxy(address(accountingModuleImplementation), address(timelock), ""))
             )
         );
-        require(minRewardableAssets > 0, "minRewardableAssets must be greater than 0");
-        accountingModule.initialize(admin, safe, IAccountingToken(address(accountingToken)), targetApy, lowerBound, minRewardableAssets);
+        //TODO: set minRewardableAssets and uncomment following line
+        // require(minRewardableAssets > 0, "minRewardableAssets must be greater than 0");
+        accountingModule.initialize(admin, safe, IAccountingToken(address(accountingToken)), targetApy, lowerBound, 0.1 ether);
 
         configureStrategy();
     }
